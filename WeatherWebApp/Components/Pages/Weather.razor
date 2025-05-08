@@ -1,11 +1,15 @@
 ﻿@page "/weather"
 @attribute [StreamRendering]
+@rendermode @(new InteractiveServerRenderMode(false))
 
 <PageTitle>Weather</PageTitle>
 
 <h1>Weather</h1>
 
-<p>This component demonstrates showing data.</p>
+<input class="form-control" @oninput = "Input" />
+
+
+<p>Warm days counter: @warmDays</p>
 
 @if (forecasts == null)
 {
@@ -36,8 +40,13 @@ else
     </table>
 }
 
+<button class="btn btn-primary" @onclick="FilterWarmDays">Show Warm Days</button>
+<button class="btn btn-primary" @onclick="Restore">Restore Data</button>
+
 @code {
     private WeatherForecast[]? forecasts;
+    private WeatherForecast[]? originalForecasts;
+    private int warmDays;
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,12 +55,35 @@ else
 
         var startDate = DateOnly.FromDateTime(DateTime.Now);
         var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        forecasts = Enumerable.Range(1, 10).Select(index => new WeatherForecast
         {
             Date = startDate.AddDays(index),
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+
+        warmDays = forecasts.Count(f => f.TemperatureC > 15);
+        originalForecasts = forecasts;
+    }
+
+    private void FilterWarmDays()
+    {
+        forecasts = originalForecasts?.Where(f => f.TemperatureC > 15).ToArray();
+    }
+
+    private void Restore()
+    {
+        forecasts = originalForecasts;
+    }
+
+    private void Input(ChangeEventArgs arg)
+    {
+        var search = arg.Value?.ToString();
+
+        if (string.IsNullOrWhiteSpace(search))
+            forecasts = originalForecasts;
+
+        forecasts = originalForecasts?.Where(f => f.Summary.Contains(search, StringComparison.OrdinalIgnoreCase)).ToArray();
     }
 
     private class WeatherForecast
